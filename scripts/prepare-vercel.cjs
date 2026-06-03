@@ -21,6 +21,24 @@ async function main() {
     }
   }
 
+  // Patch the client entry to ensure a runtime fallback for window.$_TSR
+  // so hydration doesn't throw when served as static HTML.
+  try {
+    const assetFiles = await fsp.readdir(assetsDest);
+    const entryFile = assetFiles.find((f) => /^index-.*\.js$/.test(f));
+    if (entryFile) {
+      const entryPath = path.join(assetsDest, entryFile);
+      const content = await fsp.readFile(entryPath, 'utf8');
+      const prepend = `(function(){try{if(typeof window!=='undefined'&&!window.$_TSR){window.$_TSR={router:{matches:[],lastMatchId:null,manifest:{}},t:{},buffer:[],initialized:true}}}catch(e){};})();\n`;
+      await fsp.writeFile(entryPath, prepend + content, 'utf8');
+      // Also replace copied file in outStatic assets
+      await fsp.writeFile(path.join(outStatic, 'assets', entryFile), prepend + content, 'utf8');
+    }
+  } catch (err) {
+    // non-fatal; best-effort patch
+    console.warn('Could not patch client entry for TSR fallback', err);
+  }
+
   // Copy robots.txt if present
   const robotsSrc = path.join(distClient, 'robots.txt');
   if (fs.existsSync(robotsSrc)) {
