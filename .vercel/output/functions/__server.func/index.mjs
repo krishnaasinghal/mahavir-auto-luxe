@@ -1,7 +1,6 @@
-// Wrapper to delegate to the built TanStack server bundle
-import builtServer from '../../../../dist/server/server.js';
-
 globalThis.__nitro_main__ = import.meta.url;
+import { n as HTTPError, r as NodeResponse, t as H3Core } from "./_libs/h3+rou3+srvx.mjs";
+import "./_libs/hookable.mjs";
 //#region node_modules/nitro/dist/runtime/internal/error/prod.mjs
 const errorHandler = (error, event) => {
 	const res = defaultHandler(error, event);
@@ -167,19 +166,4 @@ var vercel_web_default = { fetch(req, context) {
 	return nitroApp.fetch(req);
 } };
 //#endregion
-// Delegate fetch to the built server's fetch handler
-const delegate = builtServer && builtServer.default ? builtServer.default : builtServer;
-export default {
-	async fetch(req, context) {
-		try {
-			// Call the built server's fetch; env is not provided here
-			return await delegate.fetch(req, undefined, context);
-		} catch (err) {
-			console.error(err);
-			if (builtServer && builtServer.r) {
-				return new Response(builtServer.r(), { status: 500, headers: { 'content-type': 'text/html; charset=utf-8' } });
-			}
-			return new Response('Internal Server Error', { status: 500 });
-		}
-	}
-};
+export { vercel_web_default as default };
