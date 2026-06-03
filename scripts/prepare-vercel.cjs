@@ -88,6 +88,36 @@ async function main() {
 
   await fsp.writeFile(path.join(outStatic, 'index.html'), indexHtml, 'utf8');
   console.log('Prepared .vercel/output/static with client assets and safe index.html fallback');
+
+  // Also copy server entry so the Vercel function can delegate to the Vite SSR handler.
+  try {
+    const distServer = path.join(root, 'dist', 'server', 'server.js');
+    const funcDir = path.join(root, '.vercel', 'output', 'functions', '__server.func');
+    if (fs.existsSync(distServer) && fs.existsSync(funcDir)) {
+      await fsp.copyFile(distServer, path.join(funcDir, 'dist-server.js'));
+
+      // Write a small wrapper that dynamically imports the copied server and delegates fetch
+      const wrapper = `export default {
+  async fetch(req, context) {
+    try {
+      const entry = await import('./dist-server.js');
+      const handler = entry?.default ?? entry;
+      if (!handler || typeof handler.fetch !== 'function') {
+        return new Response(JSON.stringify({ error: true, message: 'Server handler not found' }), { status: 500, headers: { 'content-type': 'application/json; charset=utf-8' } });
+      }
+      return await handler.fetch(req, undefined, context);
+    } catch (err) {
+      console.error(err);
+      return new Response(JSON.stringify({ error: true, message: String(err) }), { status: 500, headers: { 'content-type': 'application/json; charset=utf-8' } });
+    }
+  }
+};`;
+      await fsp.writeFile(path.join(funcDir, 'index.mjs'), wrapper, 'utf8');
+      console.log('Patched Vercel function to delegate to dist/server/server.js');
+    }
+  } catch (err) {
+    console.warn('Could not patch server function automatically', err);
+  }
 }
 
 main().catch((err) => {
