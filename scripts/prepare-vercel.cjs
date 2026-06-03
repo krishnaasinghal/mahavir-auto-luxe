@@ -29,7 +29,7 @@ async function main() {
     if (entryFile) {
       const entryPath = path.join(assetsDest, entryFile);
       const content = await fsp.readFile(entryPath, 'utf8');
-      const prepend = `(function(){try{if(typeof window!=='undefined'&&!window.$_TSR){window.$_TSR={router:{matches:[],lastMatchId:null,manifest:{}},t:{},buffer:[],initialized:true}}}catch(e){};})();\n`;
+      const prepend = `(function(){try{if(typeof window!=='undefined'&&!window.$_TSR){window.$_TSR={router:{matches:[],lastMatchId:null,manifest:{}},t:new Map(),buffer:[],initialized:true};window.$_TSR.h = window.$_TSR.h || function(){};window.$_TSR.buffer.forEach = window.$_TSR.buffer.forEach || function(fn){for(var i=0;i<this.length;i++)fn(this[i])};} }catch(e){};})();\n`;
       await fsp.writeFile(entryPath, prepend + content, 'utf8');
       // Also replace copied file in outStatic assets
       await fsp.writeFile(path.join(outStatic, 'assets', entryFile), prepend + content, 'utf8');
