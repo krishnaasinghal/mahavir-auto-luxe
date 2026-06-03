@@ -30,7 +30,46 @@ async function main() {
   // We intentionally DO NOT write a static index.html here.
   // Let the Nitro/Vercel server function handle SSR for the root path so
   // hydration bootstrap data (`window.$_TSR`) is injected correctly.
-  console.log('Prepared .vercel/output/static with client assets (no index.html, SSR function will handle /)');
+  // However, some deployment paths (or local static previews) may still
+  // serve a static `index.html`. To avoid the client throwing during
+  // hydration when SSR bootstrap data is absent, write a minimal
+  // `index.html` that provides a safe `window.$_TSR` fallback before
+  // loading the client script.
+  let entryJs = '/assets/index-DyRL4z79.js';
+  let stylesCss = '/assets/styles-FKDaclx_.css';
+  if (fs.existsSync(assetsSrc)) {
+    const files = await fsp.readdir(assetsSrc);
+    for (const f of files) {
+      if (!entryJs && /^index-.*\.js$/.test(f)) entryJs = `/assets/${f}`;
+      if (!stylesCss && /^styles-.*\.css$/.test(f)) stylesCss = `/assets/${f}`;
+    }
+  }
+
+  const safeBootstrap = `
+  <script>
+    // Provide a minimal window.$_TSR so client hydration won't throw
+    // if the server did not render SSR bootstrap data. This makes the
+    // client fall back to SPA-mode hydration safely.
+    window.$_TSR = window.$_TSR || { router: { matches: [], lastMatchId: null, manifest: {} }, t: {}, buffer: [], initialized: true };
+  </script>`;
+
+  const indexHtml = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mahavir Seat Industries</title>
+    <link rel="stylesheet" href="${stylesCss}" />
+  </head>
+  <body>
+    <div id="root"></div>
+    ${safeBootstrap}
+    <script type="module" src="${entryJs}"></script>
+  </body>
+</html>`;
+
+  await fsp.writeFile(path.join(outStatic, 'index.html'), indexHtml, 'utf8');
+  console.log('Prepared .vercel/output/static with client assets and safe index.html fallback');
 }
 
 main().catch((err) => {
