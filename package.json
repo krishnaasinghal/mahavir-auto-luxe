@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "postbuild": "npx nitro build && node scripts/prepare-vercel.cjs",
+    
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
