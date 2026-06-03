@@ -1,0 +1,17 @@
+{
+  "functions": {
+    ".vercel/output/functions/__server.func/index.mjs": {
+      "runtime": "nodejs24.x"
+    }
+  },
+  "routes": [
+    {
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/__server"
+    }
+  ]
+}
